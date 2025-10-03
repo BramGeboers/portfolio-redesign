@@ -1,103 +1,290 @@
-import Image from "next/image";
+"use client";
+
+import { Canvas } from "@react-three/fiber";
+import * as THREE from "three";
+import { useRef, useReducer, useMemo } from "react";
+import type { Mesh, Vector3 } from "three";
+import type { RapierRigidBody } from "@react-three/rapier";
+import type { GLTF } from "three-stdlib";
+import {
+  useGLTF,
+  MeshTransmissionMaterial,
+  Environment,
+  Lightformer,
+} from "@react-three/drei";
+import {
+  Physics,
+  RigidBody,
+  CuboidCollider,
+  BallCollider,
+} from "@react-three/rapier";
+import { EffectComposer, N8AO } from "@react-three/postprocessing";
+import { easing } from "maath";
+import { useFrame } from "@react-three/fiber";
+
+// Types
+interface ConnectorMaterial {
+  color: string;
+  roughness: number;
+  accent?: boolean;
+}
+
+interface ConnectorProps extends Partial<ConnectorMaterial> {
+  position?: [number, number, number];
+  children?: React.ReactNode;
+}
+
+interface ModelProps {
+  children?: React.ReactNode;
+  color?: string;
+  roughness?: number;
+}
+
+interface GLTFResult extends GLTF {
+  nodes: {
+    connector: THREE.Mesh;
+  };
+  materials: {
+    base: THREE.MeshStandardMaterial;
+  };
+}
+
+// Constants
+const ACCENTS = ["#4060ff", "#20ffa0", "#ff4060", "#ffcc00"] as const;
+
+const shuffle = (accent: number): ConnectorMaterial[] => [
+  { color: "#444", roughness: 0.1 },
+  { color: "#444", roughness: 0.75 },
+  { color: "#444", roughness: 0.75 },
+  { color: "white", roughness: 0.1 },
+  { color: "white", roughness: 0.75 },
+  { color: "white", roughness: 0.1 },
+  { color: ACCENTS[accent], roughness: 0.1, accent: true },
+  { color: ACCENTS[accent], roughness: 0.75, accent: true },
+  { color: ACCENTS[accent], roughness: 0.1, accent: true },
+];
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main>
+      <header className="w-full p-8 font-instrument-serif flex justify-between items-center">
+        <a href="/" className="text-5xl text-[#FFB3AF]" aria-label="Home">
+          <span className="scale-x-[-1] inline-block translate-x-[8px] -translate-y-[2px]">
+            B
+          </span>
+          g
+        </a>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+        <a href="/#footer" className="text-3xl">
+          Contact
+        </a>
+      </header>
+
+      <div className="flex items-center justify-center max-w-6xl mx-auto h-[calc(100vh-112px)] gap-16">
+        <div className="pointer-events-none relative z-10">
+          <h2 className="text-2xl font-manrope">Developer</h2>
+          <h1 className="text-[160px] leading-[130px] font-instrument-serif text-[#FFB3AF]">
+            Bram <br />
+            Geboers
+          </h1>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        <div className="w-[1920px] h-full absolute -z-10">
+          <Scene />
+        </div>
+      </div>
+    </main>
   );
 }
+
+// Canvas Scene Component
+function Scene() {
+  const [accent, click] = useReducer(
+    (state: number) => (state + 1) % ACCENTS.length,
+    0
+  );
+  const connectors = useMemo(() => shuffle(accent), [accent]);
+
+  return (
+    <Canvas
+      onClick={click}
+      shadows
+      dpr={[1, 1.5]}
+      gl={{ antialias: false }}
+      camera={{ position: [600, 60, 25], fov: 17.5, near: 1, far: 30 }}
+    >
+      {/* <color attach="background" args={["#141622"]} /> */}
+      <ambientLight intensity={0.4} />
+      <spotLight
+        position={[10, 10, 10]}
+        angle={0.15}
+        penumbra={1}
+        intensity={1}
+        castShadow
+      />
+      <Physics gravity={[0, 0, 0]}>
+        <Pointer />
+        {connectors.map((props, i) => (
+          <Connector key={i} {...props} />
+        ))}
+        <Connector position={[10, 10, 5]}>
+          <Model>
+            <MeshTransmissionMaterial
+              clearcoat={1}
+              thickness={0.1}
+              anisotropicBlur={0.1}
+              chromaticAberration={0.1}
+              samples={8}
+              resolution={512}
+            />
+          </Model>
+        </Connector>
+      </Physics>
+      {/* <EffectComposer enableNormalPass multisampling={8}>
+      <N8AO distanceFalloff={1} aoRadius={1} intensity={4} />
+      </EffectComposer> */}
+      <Environment resolution={64}>
+        <group rotation={[-Math.PI / 3, 0, 1]}>
+          <Lightformer
+            form="circle"
+            intensity={4}
+            rotation-x={Math.PI / 2}
+            position={[0, 5, -9]}
+            scale={2}
+          />
+          <Lightformer
+            form="circle"
+            intensity={2}
+            rotation-y={Math.PI / 2}
+            position={[-5, 1, -1]}
+            scale={2}
+          />
+          <Lightformer
+            form="circle"
+            intensity={2}
+            rotation-y={Math.PI / 2}
+            position={[-5, -1, -1]}
+            scale={2}
+          />
+          <Lightformer
+            form="circle"
+            intensity={2}
+            rotation-y={-Math.PI / 2}
+            position={[10, 1, 0]}
+            scale={8}
+          />
+        </group>
+      </Environment>
+    </Canvas>
+  );
+}
+
+function Connector({
+  position,
+  children,
+  accent,
+  color,
+  roughness,
+}: ConnectorProps) {
+  const api = useRef<RapierRigidBody>(null);
+  const vec = useMemo(() => new THREE.Vector3(), []);
+
+  const pos = useMemo<[number, number, number]>(() => {
+    if (position) return position;
+    const r = THREE.MathUtils.randFloatSpread;
+    return [r(10), r(10), r(10)];
+  }, [position]);
+
+  useFrame((state, delta) => {
+    const clampedDelta = Math.min(0.1, delta);
+    const rigidBody = api.current;
+
+    if (rigidBody) {
+      const translation = rigidBody.translation();
+      vec.set(translation.x, translation.y, translation.z);
+      vec.negate().multiplyScalar(0.2);
+      rigidBody.applyImpulse(vec, true);
+    }
+  });
+
+  return (
+    <RigidBody
+      linearDamping={4}
+      angularDamping={1}
+      friction={0.1}
+      position={pos}
+      ref={api}
+      colliders={false}
+    >
+      <CuboidCollider args={[0.38, 1.27, 0.38]} />
+      <CuboidCollider args={[1.27, 0.38, 0.38]} />
+      <CuboidCollider args={[0.38, 0.38, 1.27]} />
+      {children || <Model color={color} roughness={roughness} />}
+      {accent && color && (
+        <pointLight intensity={4} distance={2.5} color={color} />
+      )}
+    </RigidBody>
+  );
+}
+
+function Pointer() {
+  const ref = useRef<RapierRigidBody>(null);
+  const vec = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame(({ mouse, viewport }) => {
+    const rigidBody = ref.current;
+    if (rigidBody) {
+      vec.set(
+        (mouse.x * viewport.width) / 2,
+        (mouse.y * viewport.height) / 2,
+        0
+      );
+      rigidBody.setNextKinematicTranslation(vec);
+    }
+  });
+
+  return (
+    <RigidBody
+      position={[0, 0, 0]}
+      type="kinematicPosition"
+      colliders={false}
+      ref={ref}
+    >
+      <BallCollider args={[1]} />
+    </RigidBody>
+  );
+}
+
+function Model({ children, color = "white", roughness = 0 }: ModelProps) {
+  const ref = useRef<Mesh>(null);
+  const { nodes, materials } = useGLTF(
+    "/c-transformed.glb"
+  ) as unknown as GLTFResult;
+
+  useFrame((state, delta) => {
+    const mesh = ref.current;
+    if (mesh && mesh.material instanceof THREE.MeshStandardMaterial) {
+      easing.dampC(mesh.material.color, color, 0.2, delta);
+    }
+  });
+
+  return (
+    <mesh
+      ref={ref}
+      castShadow
+      receiveShadow
+      scale={10}
+      geometry={nodes.connector.geometry}
+    >
+      <meshStandardMaterial
+        metalness={0.2}
+        roughness={roughness}
+        map={materials.base.map}
+      />
+      {children}
+    </mesh>
+  );
+}
+
+// Preload the GLTF model
+useGLTF.preload("/c-transformed.glb");

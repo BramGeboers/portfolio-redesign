@@ -1,8 +1,10 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap");
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  color: white;
 }
 
 @theme inline {
@@ -15,8 +17,12 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
-    --foreground: #ededed;
   }
+}
+
+@theme {
+  --font-instrument-serif: "Instrument Serif", serif;
+  --font-manrope: "Manrope", sans-serif;
 }
 
 body {
